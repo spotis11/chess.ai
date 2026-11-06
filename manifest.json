@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chess AI Helper",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "description": "Real AI chess helper. Built-in Stockfish 19 engine, instant move analysis, human-shaped autoplay.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [

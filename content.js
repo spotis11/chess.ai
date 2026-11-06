@@ -48,6 +48,14 @@
 //    makes autoplay play the opponent's moves.
 //  - scheduling is vetoed when the site clock disagrees with the inferred turn.
 //
+// v4.0.5 fix (castling never landed):
+//  - stockfish reports castling in UCI form (e1h1 / e1a1 - king square to rook
+//    square). chess.com's board wants the king's real destination (g1 / c1).
+//    the drag was dropping the king on its own rook, getting rejected, and
+//    snapping back, so e1h1 burned both drag attempts, fell through to the
+//    local-only api, and the ply died. every move is now rewritten to the UI
+//    form before it is measured, injected, or marked as played.
+//
 // v4.0.3 fixes (autoplay stalled after the first move):
 //  - turn is now inferred from the board delta: the side that was to move is
 //    the side that moved, so the next turn is the other side. one ply, one
@@ -61,7 +69,7 @@
 //    checked at fire time, and a miss retries twice with backoff. the next
 //    settled pass owns the post-move position, so it cannot double-fire.
 
-const BOARD_ASSIST_VERSION = '4.0.4';
+const BOARD_ASSIST_VERSION = '4.0.5';
 console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#00f5d4;font-weight:bold;padding:3px 8px;border-radius:4px;font-size:13px;');
 
 (() => {
@@ -1002,11 +1010,39 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
     await new Promise(r => setTimeout(r, 140));
   }
 
+  // UCI castling is written as the king's square to the ROOK's square
+  // (e1h1 / e1a1). chess.com's board wants the king's DESTINATION (g1 / c1)
+  // for both the drag drop and the api object. feeding it e1h1 makes the drag
+  // land on the rook, get rejected, and the piece snap back - which is exactly
+  // the "move did not register ... piece still on e1" line.
+  function toUiMove(uci, pieces) {
+    if (!uci || uci.length < 4) return uci;
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const fromCoord = algebraicToCoord(from);
+    const piece = pieces.find(p => p.file === fromCoord.file && p.rank === fromCoord.rank);
+    if (piece && piece.char.toLowerCase() === 'k') {
+      const df = FILES.indexOf(to[0]) - FILES.indexOf(from[0]);
+      if (Math.abs(df) >= 2) {
+        const kingTo = (df > 0 ? 'g' : 'c') + from[1];
+        return from + kingTo + uci.slice(4);
+      }
+    }
+    return uci;
+  }
+
   async function executeMove(boardEl, fromAlg, toAlg, flipped) {
     log('autoplay executing', fromAlg, '->', toAlg);
 
     // SAFETY: verify the from-square actually has a piece of our color.
     const pieces = readPieces(boardEl);
+    // castling rewrite before anything is measured or injected
+    const uiMove = toUiMove(fromAlg + toAlg, pieces);
+    if (uiMove !== fromAlg + toAlg) {
+      log('autoplay: castling rewritten for the board', fromAlg + toAlg, '->', uiMove);
+      fromAlg = uiMove.slice(0, 2);
+      toAlg = uiMove.slice(2, 4);
+    }
     const fromCoord = algebraicToCoord(fromAlg);
     const toCoord = algebraicToCoord(toAlg);
     const piece = pieces.find(p => p.file === fromCoord.file && p.rank === fromCoord.rank);

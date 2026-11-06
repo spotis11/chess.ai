@@ -29,7 +29,7 @@
 //
 // no chrome.debugger, no CDP, no yellow banner, no debugger permission.
 
-const VERSION = '4.0.4';
+const VERSION = '4.0.5';
 const DEFAULTS = {
   enabled: true, depth: 22, multiPV: 3,
   skillLevel: 20, useEloLimit: false, elo: 1500,
