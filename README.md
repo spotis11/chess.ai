@@ -74,15 +74,21 @@ chess.com  →  content.js  →  engine.js  →  Stockfish 19  →  HUD + arrows
 
 ```
 chess-ai-helper/
-├── manifest.json       # Manifest V3 declaration
-├── background.js       # Service worker (lifecycle, message routing)
-├── content.js          # chess.com DOM probe, FEN builder, arrow renderer
-├── engine.js           # Web Worker bootstrap for Stockfish
-├── stockfish.js        # Stockfish 19 lite (single-threaded, no COOP/COEP)
-├── stockfish.wasm      # Stockfish WASM binary
-├── popup.html          # Settings UI
-├── popup.js            # Settings persistence (chrome.storage.sync)
-└── styles.css          # HUD panel + arrow layer styles
+├── manifest.json              # Manifest V3 (4.1.0) — loads registry + manager before content.js
+├── background.js              # Service worker (lifecycle, message routing, UCI bridge relay)
+├── content.js                 # chess.com DOM probe, FEN builder, arrow renderer, EngineManager boot
+├── engine.js                  # Legacy Web Worker bootstrap (bundled Stockfish loader)
+├── stockfish.js               # Stockfish 19 lite (single-threaded, no COOP/COEP)
+├── stockfish.wasm             # Stockfish WASM binary
+├── popup.html                 # Settings UI (engine picker + per-engine options)
+├── popup.js                   # Settings persistence + dynamic engine option controls
+├── styles.css                 # HUD panel + arrow layer styles
+├── engines/
+│   ├── registry.js            # Engine metadata: IDs, transports, setoption defaults, Elo ranges
+│   ├── engine-manager.js      # Transport layer — boots worker or bridge adapter, handles fallback
+│   └── README.md              # Where to drop lc0, maia, stockfish18, komodo, rodent binaries
+└── bridge/
+    └── uci-bridge.js          # Zero-dep Node TCP→WebSocket relay for native UCI engines
 ```
 
 ## Privacy
@@ -123,6 +129,7 @@ PRs welcome. The codebase is one file per layer — easy to navigate.
 
 | Version | Notes |
 |---|---|
+| 4.1.0 | Multi-engine support — `EngineManager` with worker + bridge transports; 5-engine picker (Stockfish 19 Lite, Maia 3, Stockfish 18, Komodo Dragon, Rodent IV); per-engine options; `uci-bridge.js` for native engines; automatic fallback to bundled SF19 Lite. |
 | 4.0.5 | Castling fix — `toUiMove()` rewrites UCI castling (`e1h1`) to chess.com UI form (`e1g1`) before injection; castling now lands on both colors, kingside and queenside. |
 | 4.0.4 | Autoplay moved-piece-but-turn-stayed fix; local-only move undo + real pointer drag fallback. |
 | 4.0.3 | Turn inference rebuilt from board delta; one-shot `justPlayed` marker. |

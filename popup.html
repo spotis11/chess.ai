@@ -163,6 +163,56 @@
     margin-top: 8px;
     line-height: 1.5;
   }
+  .engine-blurb {
+    font-size: 10px;
+    line-height: 1.5;
+    color: #8b95ab;
+    padding: 6px 10px;
+    margin: 2px 0 6px;
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid #2a3045;
+    border-radius: 4px;
+  }
+  .engine-blurb b { color: #c0c8d8; }
+  .engine-blurb .badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 6px;
+    background: rgba(255,255,255,0.08);
+  }
+  .opt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    margin: 2px 0;
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px;
+  }
+  .opt-row label {
+    font-size: 11px;
+    color: #9aa4ba;
+    flex: 1;
+    cursor: pointer;
+  }
+  .opt-row input[type="number"], .opt-row input[type="text"], .opt-row select {
+    width: 108px;
+  }
+  .bridge-missing {
+    color: #ffa502;
+    font-size: 9px;
+    line-height: 1.5;
+    margin-top: 4px;
+    padding: 6px 9px;
+    background: rgba(255,165,2,0.07);
+    border-radius: 5px;
+    border-left: 2px solid rgba(255,165,2,0.5);
+  }
   .footer {
     text-align: center;
     padding: 8px;
@@ -175,8 +225,8 @@
 </head>
 <body>
   <div class="header">
-    <h1><span class="logo">♞</span> Chess AI Helper <span class="ver">v4.0.3</span></h1>
-    <div class="sub">Built-in Stockfish 19 · Real AI Engine</div>
+    <h1><span class="logo">♞</span> Chess AI Helper <span class="ver">v4.1.0</span></h1>
+    <div class="sub">5 engines · Maia 3 · Stockfish 18 · Komodo · Rodent</div>
   </div>
   <div class="body">
     <div class="section">
@@ -189,17 +239,25 @@
     </div>
 
     <div class="section">
-      <div class="section-title">Engine Power</div>
-      <div class="row"><label for="depth">Analysis depth (max 22)</label><input type="number" id="depth" min="6" max="22" step="1"></div>
-      <div class="row"><label for="multiPV">Lines shown (MultiPV)</label><input type="number" id="multiPV" min="1" max="5" step="1"></div>
-      <div class="row"><label for="useCloudEval">Lichess opening book</label><div class="toggle" data-key="useCloudEval"></div></div>
+      <div class="section-title">Engine</div>
+      <div class="row"><label for="engineId">Active engine</label>
+        <select id="engineId" style="width:160px"></select>
+      </div>
+      <div class="engine-blurb" id="engineBlurb"></div>
+      <div id="engineOptions"></div>
+      <div class="row" id="bridgeRow" style="display:none">
+        <label for="bridgePort">Native bridge port</label>
+        <input type="number" id="bridgePort" min="1024" max="65535" step="1">
+      </div>
+      <div class="bridge-missing" id="bridgeNote" style="display:none">
+        Needs the native binary + <b>bridge/uci-bridge.js</b> running. Missing engine automatically falls back to the bundled Stockfish 19 Lite.
+      </div>
     </div>
 
     <div class="section">
-      <div class="section-title">Strength Control</div>
-      <div class="row"><label for="skillLevel">Skill level (0-20)</label><input type="number" id="skillLevel" min="0" max="20" step="1"></div>
-      <div class="row"><label for="useEloLimit">Cap by ELO rating</label><div class="toggle" data-key="useEloLimit"></div></div>
-      <div class="row" id="eloRow"><label for="elo">Target ELO (1320-3190)</label><input type="number" id="elo" min="1320" max="3190" step="10"></div>
+      <div class="section-title">Analysis</div>
+      <div class="row"><label for="depth">Analysis depth (max 22)</label><input type="number" id="depth" min="6" max="22" step="1"></div>
+      <div class="row"><label for="useCloudEval">Lichess opening book</label><div class="toggle" data-key="useCloudEval"></div></div>
     </div>
 
     <div class="section">
@@ -227,7 +285,8 @@
       Green arrow = best move. Blue = alternatives. Brightness = move quality.
     </div>
   </div>
-  <div class="footer">Powered by <b>Stockfish 19</b> · GPL-3.0</div>
+  <div class="footer">Powered by <b>5 UCI engines</b> · GPL-3.0</div>
+  <script src="engines/registry.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

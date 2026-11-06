@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Chess AI Helper",
-  "version": "4.0.5",
-  "description": "Real AI chess helper. Built-in Stockfish 19 engine, instant move analysis, human-shaped autoplay.",
+  "version": "4.1.0",
+  "description": "5-engine chess helper: Maia 3, Stockfish 18, Komodo Dragon, Rodent IV and bundled Stockfish 19 Lite.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
     "https://www.chess.com/*",
     "https://chess.com/*",
-    "https://lichess.org/*"
+    "https://lichess.org/*",
+    "http://127.0.0.1/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -18,14 +19,14 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["stockfish.js", "stockfish.wasm", "engine.js"],
+      "resources": ["stockfish.js", "stockfish.wasm", "engine.js", "engines/*"],
       "matches": ["https://www.chess.com/*", "https://chess.com/*"]
     }
   ],
   "content_scripts": [
     {
       "matches": ["https://www.chess.com/*", "https://chess.com/*"],
-      "js": ["content.js"],
+      "js": ["engines/registry.js", "engines/engine-manager.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"
     }

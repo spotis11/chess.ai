@@ -1,4 +1,4 @@
-// Chess AI Helper v4.0.4 - MV3 service worker
+// Chess AI Helper v4.1.0 - MV3 service worker
 // debugger API removed. autoplay clicks now go through chrome.scripting.executeScript
 // with world: "MAIN" so the injected function runs in the page's own JS context.
 //
@@ -29,14 +29,15 @@
 //
 // no chrome.debugger, no CDP, no yellow banner, no debugger permission.
 
-const VERSION = '4.0.5';
+const VERSION = '4.1.0';
 const DEFAULTS = {
   enabled: true, depth: 22, multiPV: 3,
   skillLevel: 20, useEloLimit: false, elo: 1500,
   useCloudEval: true, showArrow: true, showEval: true,
   showPrediction: true, arrowsOnlyMyTurn: true,
   autoplay: false, autoplayMinDelay: 0, autoplayMaxDelay: 0,
-  autoplaySide: 'auto', autoplayDepth: 8
+  autoplaySide: 'auto', autoplayDepth: 8,
+  engineId: 'stockfish19lite', engineOptions: {}, bridgePort: 8765
 };
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -553,4 +554,82 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   sendResponse({ ok: false, err: 'unknown type' });
+});
+
+// ============================================================
+// native engine bridge relay
+// ============================================================
+// Komodo Dragon, Rodent IV and native lc0 have no browser build. they run as
+// native UCI binaries behind bridge/uci-bridge.js on 127.0.0.1. the content
+// script cannot reliably open that socket itself (the host page's connect-src
+// CSP applies to it), so the service worker owns the WebSocket and relays
+// JSON frames over a long-lived runtime port.
+//
+// port (content)  ->  background  ->  ws://127.0.0.1:<port>/
+//   {type:'start', engine, bin, args, port}
+//   {type:'line', line}
+// background      ->  port
+//   {type:'bridge', data}      raw JSON text from the bridge server
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'uci-bridge') return;
+
+  let ws = null;
+  let closed = false;
+
+  const send = (obj) => {
+    if (closed) return;
+    try { port.postMessage(obj); } catch (_) { closed = true; }
+  };
+
+  const relayLine = (line) => {
+    if (!ws || ws.readyState !== 1) return;
+    try { ws.send(JSON.stringify({ type: 'line', line: String(line) })); } catch (_) {}
+  };
+
+  const connect = (cfg) => {
+    const bridgePort = cfg && cfg.port ? cfg.port : 8765;
+    try {
+      ws = new WebSocket('ws://127.0.0.1:' + bridgePort + '/');
+    } catch (e) {
+      send({ type: 'error', message: String(e && e.message || e) });
+      return;
+    }
+
+    ws.onopen = () => {
+      try {
+        ws.send(JSON.stringify({
+          type: 'start',
+          engine: cfg.engine,
+          bin: cfg.bin,
+          args: cfg.args || []
+        }));
+      } catch (e) {
+        send({ type: 'error', message: String(e && e.message || e) });
+      }
+    };
+
+    ws.onmessage = (ev) => {
+      send({ type: 'bridge', data: typeof ev.data === 'string' ? ev.data : String(ev.data) });
+    };
+
+    ws.onerror = () => {
+      send({ type: 'error', message: 'bridge connection refused on port ' + bridgePort });
+    };
+
+    ws.onclose = () => {
+      send({ type: 'closed' });
+    };
+  };
+
+  port.onMessage.addListener((msg) => {
+    if (!msg || !msg.type) return;
+    if (msg.type === 'start') { connect(msg); return; }
+    if (msg.type === 'line') { relayLine(msg.line); return; }
+  });
+
+  port.onDisconnect.addListener(() => {
+    closed = true;
+    try { if (ws) ws.close(); } catch (_) {}
+    ws = null;
+  });
 });

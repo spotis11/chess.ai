@@ -69,7 +69,7 @@
 //    checked at fire time, and a miss retries twice with backoff. the next
 //    settled pass owns the post-move position, so it cannot double-fire.
 
-const BOARD_ASSIST_VERSION = '4.0.5';
+const BOARD_ASSIST_VERSION = '4.1.0';
 console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#00f5d4;font-weight:bold;padding:3px 8px;border-radius:4px;font-size:13px;');
 
 (() => {
@@ -92,6 +92,10 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
     autoplayDepth: 8,        // fast depth for instant autoplay moves
     engine: null,
     engineReady: false,
+    engineId: 'stockfish19lite',   // registry id currently selected
+    engineName: 'Stockfish 19 Lite',
+    engineOptions: {},             // { [engineId]: { [uciOption]: value } }
+    bridgePort: 8765,              // native bridge (Komodo / Rodent / lc0)
     thinking: false,
     lastFen: null,
     panel: null,
@@ -538,49 +542,79 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
   // engine
   // ============================================================
   // MV3 content scripts can't spawn a Worker from a chrome-extension:// URL
-  // (SecurityError). Workaround: fetch engine + wasm as Blobs, create the
-  // worker from blob: URLs which are same-origin to the page. The wasm
-  // blob URL is passed to stockfish via the worker script URL hash.
+  // (SecurityError). engines/engine-manager.js solves that by fetching every
+  // engine file as a Blob and booting a blob: worker - and it also owns the
+  // native bridge transport (ws://127.0.0.1) used by Komodo Dragon / Rodent IV.
+  // both transports expose the Worker shape below, so the rest of this file
+  // does not care which engine is running.
+  let _engineManager = null;
+  function getEngineManager() {
+    if (!_engineManager) {
+      if (!window.ChessAIEngineManager) throw new Error('engine-manager.js not loaded');
+      _engineManager = new window.ChessAIEngineManager(log);
+    }
+    return _engineManager;
+  }
+
   async function loadEngine(cb) {
-    if (STATE.engine) return cb(STATE.engine);
+    if (STATE.engine) {
+      if (STATE.engineReady) { if (cb) cb(STATE.engine); }
+      else { STATE._readyCb = cb || null; }
+      return;
+    }
+    if (STATE._loadingEngine) { STATE._readyCb = cb || null; return; }
+    STATE._loadingEngine = true;
+
+    const reg = window.ChessAIEngines;
+    const wanted = reg && reg.ENGINES[STATE.engineId] ? STATE.engineId : (reg ? reg.DEFAULT_ENGINE : 'stockfish19lite');
+    const saved = (STATE.engineOptions && STATE.engineOptions[wanted]) || null;
+
     try {
-      log('fetching engine + wasm as blobs');
-      const [jsText, wasmBuf] = await Promise.all([
-        fetch(chrome.runtime.getURL('stockfish.js')).then(r => r.text()),
-        fetch(chrome.runtime.getURL('stockfish.wasm')).then(r => r.arrayBuffer())
-      ]);
-      const wasmBlob = new Blob([wasmBuf], { type: 'application/wasm' });
-      const wasmUrl = URL.createObjectURL(wasmBlob);
-      // stockfish.js worker bootstrap reads self.location.hash.substr(1)
-      // and uses it as the wasm fetch URL. encode so commas/colons don't break parsing.
-      const jsBlob = new Blob([jsText], { type: 'application/javascript' });
-      const jsUrl = URL.createObjectURL(jsBlob) + '#' + encodeURIComponent(wasmUrl);
-      log('starting blob worker', jsUrl.split('#')[0], 'wasm', wasmUrl);
-      const w = new Worker(jsUrl);
-      STATE.engine = w;
-      STATE._blobUrls = STATE._blobUrls || [];
-      STATE._blobUrls.push(jsUrl, wasmUrl);
-      w.onmessage = (e) => {
-        const line = (typeof e.data === 'string') ? e.data : (e.data && e.data.data) || '';
+      const adapter = await getEngineManager().boot(wanted, saved, { port: STATE.bridgePort || 8765 });
+      STATE.engine = adapter;
+      STATE.engineId = adapter.engineId;
+      STATE.engineName = adapter.engineName || adapter.engineId;
+      if (adapter.fellBackFrom) {
+        log('engine: ' + adapter.fellBackFrom + ' not available (' + (adapter.fellBackReason || 'missing build') + ') - using bundled ' + STATE.engineName);
+      }
+      log('engine: selected ' + STATE.engineName + ' [' + adapter.transport + ']');
+      adapter.onmessage = (e) => {
+        const line = (e && typeof e.data === 'string') ? e.data : (e && e.data && e.data.data) || '';
         handleEngineLine(line);
       };
-      w.onerror = (err) => {
-        log('worker error', err && err.message || err);
+      adapter.onerror = (err) => {
+        log('engine error', err && err.message || err);
         setStatus('engine err', '#ff5555');
       };
-      STATE._readyCb = cb;
-      setTimeout(() => { try { w.postMessage('uci'); } catch(_){} }, 300);
-      setTimeout(() => {
-        if (!STATE.engineReady) {
-          log('engine timeout, retrying uci');
-          try { w.postMessage('uci'); } catch(_){}
-        }
-      }, 2000);
+      adapter.start();
     } catch (e) {
-      log('worker create failed', e);
+      log('engine boot failed', e && e.message || e);
       setStatus('no engine', '#ff5555');
+    } finally {
+      STATE._loadingEngine = false;
     }
   }
+
+  // drop the live engine so the next loadEngine() boots whatever the popup
+  // just selected. used when engineId / engineOptions / bridgePort change.
+  function restartEngine() {
+    if (STATE.engine && typeof STATE.engine.terminate === 'function') {
+      try { STATE.engine.terminate(); } catch (_) {}
+    }
+    STATE.engine = null;
+    STATE.engineReady = false;
+    STATE.thinking = false;
+    STATE._loadingEngine = false;
+    STATE._readyCb = null;
+    STATE._blobUrls = null;
+    bestMoveResolve = null;
+    isThinking = false;
+    currentSearchId++;
+    activeSearchFen = null;
+    pvAccum = [];
+    log('engine: restart requested (' + STATE.engineId + ')');
+  }
+
 
   let bestMoveResolve = null;
   let pvAccum = [];          // collected PV lines from current search
@@ -598,6 +632,8 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
       STATE.engineReady = true;
       applyStrengthOptions();
       setStatus('ready', '#6cf36c');
+      setField('engine', STATE.engineName || STATE.engineId || 'engine');
+      log('engine ready: ' + (STATE.engineName || STATE.engineId));
       if (STATE._readyCb) { STATE._readyCb(STATE.engine); STATE._readyCb = null; }
       return;
     }
@@ -665,6 +701,15 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
 
   function applyStrengthOptions() {
     const e = STATE.engine; if (!e || !STATE.engineReady) return;
+    const reg = window.ChessAIEngines;
+    if (reg) {
+      const saved = (STATE.engineOptions && STATE.engineOptions[STATE.engineId]) || null;
+      const opts = reg.resolveOptions(STATE.engineId, saved);
+      if (typeof opts.MultiPV === 'number') STATE.multiPV = opts.MultiPV;
+      for (const line of reg.toUciOptions(STATE.engineId, opts)) e.postMessage(line);
+      return;
+    }
+    // legacy path: registry failed to load, fall back to stockfish options
     e.postMessage('setoption name Skill Level value ' + STATE.skillLevel);
     if (STATE.useEloLimit) {
       e.postMessage('setoption name UCI_LimitStrength value true');
@@ -697,8 +742,9 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
     const panel = document.createElement('div');
     panel.id = 'unc-board-panel';
     panel.innerHTML = `
-      <div class="ub-title">CHESS AI <span class="ub-ver">v4.0.3</span></div>
+      <div class="ub-title">CHESS AI <span class="ub-ver">v4.1.0</span></div>
       <div class="ub-body">
+        <div class="ub-row"><span>Engine</span><b class="ub-engine">--</b></div>
         <div class="ub-row"><span>Eval</span><b class="ub-eval">--</b></div>
         <div class="ub-row"><span>Best</span><b class="ub-best">--</b></div>
         <div class="ub-row"><span>Predict</span><b class="ub-pred">--</b></div>
@@ -733,6 +779,9 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
   function setStatus(text, color) {
     const el = STATE.panel && STATE.panel.querySelector('.ub-state');
     if (el) { el.textContent = text; el.style.color = color || '#ffd166'; }
+  }
+  function engineTag() {
+    return STATE.engineName || STATE.engineId || 'engine';
   }
 
   function ensureArrowLayer(boardEl) {
@@ -1648,7 +1697,7 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
           if (verifyMoveForSide(info.pvs[0].moves[0], pieces, turn)) {
             renderArrows(boardEl, info.pvs, flipped);
             setField('best', info.pvs[0].moves[0].slice(0,2) + '-' + info.pvs[0].moves[0].slice(2,4));
-            setField('src', 'stockfish (live d' + (info.depth || '?') + ')');
+            setField('src', engineTag() + ' (live d' + (info.depth || '?') + ')');
           }
         }
       };
@@ -1719,7 +1768,7 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
         if (!correctedShouldShowArrows) {
           clearArrows(boardEl);
           setField('best', best.slice(0,2) + '-' + best.slice(2,4));
-          setField('src', 'stockfish (corrected)');
+          setField('src', engineTag() + ' (corrected)');
           setStatus('idle', '#6cf36c');
           return;
         }
@@ -1732,7 +1781,7 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
         return;
       }
       setField('best', best.slice(0,2) + '-' + best.slice(2,4));
-      setField('src', useFastPath ? 'stockfish (instant)' : 'stockfish (max)');
+      setField('src', engineTag() + (useFastPath ? ' (instant)' : ' (max)'));
       // engine accepted a move for this turn: detection side is verified truth
       syncBoardState(currentPieces, turn);
       // OPPONENT PREDICTION: when it's the opponent's turn, the engine's PV[0]
@@ -1864,6 +1913,7 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
     showPrediction: true, arrowsOnlyMyTurn: true,
     autoplay: false, autoplayMinDelay: 0, autoplayMaxDelay: 0,
     autoplaySide: 'auto', autoplayDepth: 8,
+    engineId: 'stockfish19lite', engineOptions: {}, bridgePort: 8765,
     // evasion state — human-move cadence and tab-focus gating.
     // nextHumanMoveAt counts down from a random 8-15; when it hits 0 the
     // selector skips the engine-weighted path and plays a plan-like move.
@@ -1884,9 +1934,11 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
       log('storage change:', k, 'old=', chg[k].oldValue, 'new=', chg[k].newValue);
     }
     let needReanalyze = false;
+    let engineChanged = false;
     for (const k in chg) {
       STATE[k] = chg[k].newValue;
       if (['enabled','depth','multiPV','skillLevel','useEloLimit','elo','useCloudEval','autoplaySide','arrowsOnlyMyTurn','showPrediction','autoplayDepth'].includes(k)) needReanalyze = true;
+      if (['engineId','engineOptions','bridgePort'].includes(k)) engineChanged = true;
     }
     if (chg.showArrow !== undefined && !chg.showArrow.newValue) clearArrows(getBoardEl());
     if (chg.autoplay !== undefined && !chg.autoplay.newValue && STATE.pendingAutoMove) {
@@ -1894,6 +1946,7 @@ console.log('%c[Chess AI Helper] v' + BOARD_ASSIST_VERSION + ' LOADED', 'backgro
       STATE.pendingAutoMove = null;
       log('autoplay: cancelled via toggle');
     }
+    if (engineChanged) { restartEngine(); STATE.lastFen = null; schedule(); return; }
     if (STATE.engineReady && (chg.skillLevel || chg.useEloLimit || chg.elo || chg.multiPV)) applyStrengthOptions();
     if (needReanalyze) { STATE.lastFen = null; schedule(); }
   });
