@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Chess AI Helper",
+  "version": "4.0.4",
+  "description": "Real AI chess helper. Built-in Stockfish 19 engine, instant move analysis, human-shaped autoplay.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.chess.com/*",
+    "https://chess.com/*",
+    "https://lichess.org/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Chess AI Helper"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["stockfish.js", "stockfish.wasm", "engine.js"],
+      "matches": ["https://www.chess.com/*", "https://chess.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.chess.com/*", "https://chess.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

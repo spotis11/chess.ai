@@ -1,0 +1,81 @@
+.unc-arrow-layer {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+}
+#unc-board-panel {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  z-index: 2147483647;
+  background: linear-gradient(135deg, rgba(10,14,26,0.96), rgba(26,32,53,0.96));
+  color: #e0e6f0;
+  font: 12px/1.5 'Segoe UI', system-ui, sans-serif;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,245,212,0.15);
+  min-width: 200px;
+  pointer-events: auto;
+  cursor: move;
+  border: 1px solid rgba(0,245,212,0.2);
+  user-select: none;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+#unc-board-panel .ub-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #0a0e1a;
+  margin-bottom: 0;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #00f5d4 0%, #00bbf9 50%, #5b3ff8 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#unc-board-panel .ub-ver {
+  font-size: 9px;
+  font-weight: 600;
+  background: rgba(10,14,26,0.3);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+#unc-board-panel .ub-body {
+  padding: 10px 12px;
+}
+#unc-board-panel .ub-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+#unc-board-panel .ub-row span {
+  color: #5a6378;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+#unc-board-panel .ub-row b {
+  color: #00f5d4;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+#unc-board-panel .ub-state {
+  color: #ffd166;
+  font-size: 12px;
+}
+#unc-board-panel .ub-src {
+  color: #00bbf9;
+  font-size: 11px;
+}
+#unc-board-panel .ub-pred {
+  color: #ff6b6b;
+  font-weight: 700;
+  font-size: 13px;
+}
+#unc-board-panel .ub-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,245,212,0.2), transparent);
+  margin: 6px 0;
+}

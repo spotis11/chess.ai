@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+bun.lock
+package-lock.json
+yarn.lock
+
+# Build output
+.next/
+out/
+build/
+dist/
+*.zip
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+dev.log
+server.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Browser profile artifacts
+.agent-browser/

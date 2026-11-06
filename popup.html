@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font: 13px/1.5 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0a0e1a 0%, #131829 50%, #1a1f35 100%);
+    color: #e0e6f0;
+    padding: 0;
+    min-width: 320px;
+    max-width: 340px;
+  }
+  .header {
+    background: linear-gradient(135deg, #00f5d4 0%, #00bbf9 50%, #5b3ff8 100%);
+    padding: 16px 18px;
+    color: #0a0e1a;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 100px; height: 200%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.15), transparent);
+    transform: rotate(25deg);
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header .logo {
+    width: 22px; height: 22px;
+    background: #0a0e1a;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #00f5d4;
+  }
+  .header .ver {
+    margin-left: auto;
+    font-size: 10px;
+    background: rgba(10,14,26,0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .header .sub {
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 3px;
+    font-weight: 500;
+  }
+  .body { padding: 14px 16px; }
+  .section {
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #5a6378;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title::before {
+    content: '';
+    width: 3px; height: 12px;
+    background: linear-gradient(180deg, #00f5d4, #00bbf9);
+    border-radius: 2px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    margin: 4px 0;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.15s;
+  }
+  .row:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(0,245,212,0.2);
+  }
+  .row label {
+    font-size: 12px;
+    color: #c0c8d8;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+  }
+  .toggle {
+    position: relative;
+    width: 36px; height: 20px;
+    background: #2a3045;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: linear-gradient(135deg, #00f5d4, #00bbf9); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle.on::after { transform: translateX(16px); }
+  .toggle input { display: none; }
+  select, input[type="number"] {
+    background: #1a2035;
+    color: #e0e6f0;
+    border: 1px solid #2a3045;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: 90px;
+    font-family: inherit;
+  }
+  select:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: #00f5d4;
+  }
+  .autoplay-section {
+    background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(91,63,248,0.08));
+    border: 1px solid rgba(255,107,107,0.15);
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 4px;
+  }
+  .autoplay-section .section-title { color: #ff6b6b; }
+  .autoplay-section .section-title::before { background: linear-gradient(180deg, #ff6b6b, #ee5a24); }
+  .warn {
+    color: #ffa502;
+    font-size: 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(255,165,2,0.08);
+    border-radius: 6px;
+    border-left: 3px solid #ffa502;
+    line-height: 1.5;
+  }
+  .hint {
+    color: #5a6378;
+    font-size: 10px;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .footer {
+    text-align: center;
+    padding: 8px;
+    font-size: 10px;
+    color: #3a4055;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .footer b { color: #00f5d4; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1><span class="logo">♞</span> Chess AI Helper <span class="ver">v4.0.3</span></h1>
+    <div class="sub">Built-in Stockfish 19 · Real AI Engine</div>
+  </div>
+  <div class="body">
+    <div class="section">
+      <div class="section-title">General</div>
+      <div class="row"><label for="enabled">Enabled</label><div class="toggle" data-key="enabled"></div></div>
+      <div class="row"><label for="showArrow">Show move arrows</label><div class="toggle" data-key="showArrow"></div></div>
+      <div class="row"><label for="arrowsOnlyMyTurn">Arrows only on my turn</label><div class="toggle" data-key="arrowsOnlyMyTurn"></div></div>
+      <div class="row"><label for="showEval">Show evaluation</label><div class="toggle" data-key="showEval"></div></div>
+      <div class="row"><label for="showPrediction">Predict opponent's move</label><div class="toggle" data-key="showPrediction"></div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Engine Power</div>
+      <div class="row"><label for="depth">Analysis depth (max 22)</label><input type="number" id="depth" min="6" max="22" step="1"></div>
+      <div class="row"><label for="multiPV">Lines shown (MultiPV)</label><input type="number" id="multiPV" min="1" max="5" step="1"></div>
+      <div class="row"><label for="useCloudEval">Lichess opening book</label><div class="toggle" data-key="useCloudEval"></div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Strength Control</div>
+      <div class="row"><label for="skillLevel">Skill level (0-20)</label><input type="number" id="skillLevel" min="0" max="20" step="1"></div>
+      <div class="row"><label for="useEloLimit">Cap by ELO rating</label><div class="toggle" data-key="useEloLimit"></div></div>
+      <div class="row" id="eloRow"><label for="elo">Target ELO (1320-3190)</label><input type="number" id="elo" min="1320" max="3190" step="10"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Autoplay</div>
+      <div class="autoplay-section">
+        <div class="row"><label for="autoplay">Auto-make moves</label><div class="toggle" data-key="autoplay"></div></div>
+        <div class="row"><label for="autoplaySide">Play as</label>
+          <select id="autoplaySide">
+            <option value="auto">Auto (bottom)</option>
+            <option value="white">White</option>
+            <option value="black">Black</option>
+          </select>
+        </div>
+        <div class="row"><label for="autoplayDepth">Autoplay depth (6-12)</label><input type="number" id="autoplayDepth" min="6" max="12" step="1"></div>
+        <div class="row"><label for="autoplayMinDelay">Min delay (ms)</label><input type="number" id="autoplayMinDelay" min="0" max="10000" step="50"></div>
+        <div class="row"><label for="autoplayMaxDelay">Max delay (ms)</label><input type="number" id="autoplayMaxDelay" min="0" max="20000" step="50"></div>
+      </div>
+      <div class="warn">
+        ⚠ Autoplay is the #1 fair-play ban trigger. Use a burner account. Raise delays to 1500-4000ms. Enable ELO cap.
+      </div>
+    </div>
+
+    <div class="hint">
+      <b style="color:#00f5d4">Setup:</b> chess.com Settings → Game → Move animation: <b>None</b>, Notation: <b>Figurine</b>.<br>
+      Green arrow = best move. Blue = alternatives. Brightness = move quality.
+    </div>
+  </div>
+  <div class="footer">Powered by <b>Stockfish 19</b> · GPL-3.0</div>
+  <script src="popup.js"></script>
+</body>
+</html>
