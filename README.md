@@ -123,6 +123,7 @@ PRs welcome. The codebase is one file per layer — easy to navigate.
 
 | Version | Notes |
 |---|---|
+| 4.0.5 | Castling fix — `toUiMove()` rewrites UCI castling (`e1h1`) to chess.com UI form (`e1g1`) before injection; castling now lands on both colors, kingside and queenside. |
 | 4.0.4 | Autoplay moved-piece-but-turn-stayed fix; local-only move undo + real pointer drag fallback. |
 | 4.0.3 | Turn inference rebuilt from board delta; one-shot `justPlayed` marker. |
 | 4.0.0 | Stockfish 19 lite single-threaded; clock-based turn detection; en passant in FEN. |
