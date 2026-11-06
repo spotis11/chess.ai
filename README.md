@@ -2,7 +2,13 @@
 
 > Free, open-source Chrome extension that brings the real **Stockfish 19** engine directly into [chess.com](https://chess.com). Best-move arrows, live evaluation, opponent prediction, and human-shaped strength control — all running locally in your browser.
 
-![chess.ai](https://raw.githubusercontent.com/chess-ai/chess-ai-helper/main/.github/hero.png)
+<p align="center">
+  <img src=".github/banner.png" alt="chess.ai banner" width="100%" />
+</p>
+
+<p align="center">
+  <img src=".github/logo.png" alt="chess.ai logo" width="120" />
+</p>
 
 [![License: MIT](https://img.shields.io/badge/wrapper-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Stockfish: GPL-3.0](https://img.shields.io/badge/stockfish-GPL--3.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
