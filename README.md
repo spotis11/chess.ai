@@ -13,7 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/wrapper-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Stockfish: GPL-3.0](https://img.shields.io/badge/stockfish-GPL--3.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Manifest V3](https://img.shields.io/badge/manifest-v3-purple.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/version-4.0.4-fuchsia.svg)](#releases)
+[![Version](https://img.shields.io/badge/version-4.1.0-fuchsia.svg)](#releases)
 
 ---
 
